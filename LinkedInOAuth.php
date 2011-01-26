@@ -36,7 +36,8 @@ require_once("BlowAuth.php");
 
 class LinkedInOAuth extends BlowAuth {
 
-    private $_linkedin_api_base_url = 'https://api.linkedin.com/uas/oauth';
+    private $_linkedin_oauth_base_url = 'https://api.linkedin.com/uas/oauth';
+    private $_linkedin_api_base_url = 'https://api.linkedin.com/v1';
 
     private $_linkedin_request_token_uri  = '/requestToken';
     private $_linkedin_access_token_uri   = '/accessToken';
@@ -52,11 +53,12 @@ class LinkedInOAuth extends BlowAuth {
             $this->token_secret = $token_secret;
         }
 
+        $this->oauth_base_url = $this->_linkedin_oauth_base_url;
         $this->api_base_url = $this->_linkedin_api_base_url;
-        $this->request_token_url = $this->_linkedin_api_base_url . $this->_linkedin_request_token_uri;
-        $this->access_token_url = $this->_linkedin_api_base_url . $this->_linkedin_access_token_uri;
-        $this->authenticate_url = $this->_linkedin_api_base_url . $this->_linkedin_authenticate_uri;
-        $this->authorize_url = $this->_linkedin_api_base_url . $this->_linkedin_authorize_uri;
+        $this->request_token_url = $this->_linkedin_oauth_base_url . $this->_linkedin_request_token_uri;
+        $this->access_token_url = $this->_linkedin_oauth_base_url . $this->_linkedin_access_token_uri;
+        $this->authenticate_url = $this->_linkedin_oauth_base_url . $this->_linkedin_authenticate_uri;
+        $this->authorize_url = $this->_linkedin_oauth_base_url . $this->_linkedin_authorize_uri;
     }
 
 }

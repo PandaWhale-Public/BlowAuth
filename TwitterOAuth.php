@@ -36,7 +36,8 @@ require_once("BlowAuth.php");
 
 class TwitterOAuth extends BlowAuth {
 
-    private $_twitter_api_base_url = 'https://api.twitter.com/oauth';
+    private $_twitter_oauth_base_url = 'https://api.twitter.com/oauth';
+    private $_twitter_api_base_url = 'https://api.twitter.com/1';
 
     private $_twitter_request_token_uri  = '/request_token';
     private $_twitter_access_token_uri   = '/access_token';
@@ -52,11 +53,12 @@ class TwitterOAuth extends BlowAuth {
             $this->token_secret = $token_secret;
         }
 
+        $this->oauth_base_url = $this->_twitter_oauth_base_url;
         $this->api_base_url = $this->_twitter_api_base_url;
-        $this->request_token_url = $this->_twitter_api_base_url . $this->_twitter_request_token_uri;
-        $this->access_token_url = $this->_twitter_api_base_url . $this->_twitter_access_token_uri;
-        $this->authenticate_url = $this->_twitter_api_base_url . $this->_twitter_authenticate_uri;
-        $this->authorize_url = $this->_twitter_api_base_url . $this->_twitter_authorize_uri;
+        $this->request_token_url = $this->_twitter_oauth_base_url . $this->_twitter_request_token_uri;
+        $this->access_token_url = $this->_twitter_oauth_base_url . $this->_twitter_access_token_uri;
+        $this->authenticate_url = $this->_twitter_oauth_base_url . $this->_twitter_authenticate_uri;
+        $this->authorize_url = $this->_twitter_oauth_base_url . $this->_twitter_authorize_uri;
     }
 
 }

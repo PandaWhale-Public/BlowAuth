@@ -37,6 +37,7 @@ class BlowAuth
     public $oauth_version = '1.0';
     public $signature_method = 'HMAC-SHA1';
 
+    protected $oauth_base_url;
     protected $api_base_url;
 
     protected $consumer_key;
@@ -72,7 +73,31 @@ class BlowAuth
         return $credentials;
     }
 
-    public function makeOAuthRequest($url, $method, $extra_params = array())
+    public function getAccessToken($oauth_verifier)
+    {
+        $params = array(
+            'oauth_verifier'        => $oauth_verifier,
+        );
+        $response = $this->makeOAuthRequest($this->access_token_url, 'GET', $params);
+
+        $raw_credentials = explode('&', $response);
+
+        $credentials = array();
+        foreach ($raw_credentials as $cred_str) {
+            $curr_cred = explode('=', $cred_str);
+            $credentials[$curr_cred[0]] = rawurldecode($curr_cred[1]);
+        }
+
+        return $credentials;
+    }
+
+    public function request($api_method)
+    {
+        $request_url = "{$this->api_base_url}/{$api_method}";
+        return $this->makeOAuthRequest($request_url, 'GET');
+    }
+
+    protected function makeOAuthRequest($url, $method, $extra_params = array())
     {
         $base_params = array(
             'oauth_consumer_key'        => $this->consumer_key,
@@ -153,28 +178,6 @@ class BlowAuth
         $query_str = "oauth_token={$credentials['oauth_token']}";
         return $this->authorize_url . "?$query_str";
     }
-
-    public function getAccessToken($oauth_verifier)
-    {
-        $params = array(
-            'oauth_verifier'        => $oauth_verifier,
-        );
-        $response = $this->makeOAuthRequest($this->access_token_url, 'GET', $params);
-
-        $raw_credentials = explode('&', $response);
-
-        $credentials = array();
-        foreach ($raw_credentials as $cred_str) {
-            $curr_cred = explode('=', $cred_str);
-            $credentials[$curr_cred[0]] = rawurldecode($curr_cred[1]);
-        }
-
-        return $credentials;
-    }
-
-
-
-
 
 }
 
