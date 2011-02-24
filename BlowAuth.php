@@ -179,6 +179,12 @@ class BlowAuth
         return $this->authorize_url . "?$query_str";
     }
 
+    public function getAuthenticateUrl($credentials)
+    {
+        $query_str = "oauth_token={$credentials['oauth_token']}";
+        return $this->authenticate_url . "?$query_str";
+    }
+
 }
 
 ?>
