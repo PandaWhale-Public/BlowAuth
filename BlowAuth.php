@@ -37,6 +37,8 @@ class BlowAuth
     public $oauth_version = '1.0';
     public $signature_method = 'HMAC-SHA1';
 
+    protected $scope_url = null;
+
     protected $oauth_base_url;
     protected $api_base_url;
 
@@ -59,6 +61,10 @@ class BlowAuth
         $params = array();
         if (!is_null($oauth_callback)) {
             $params['oauth_callback'] = $oauth_callback;
+        }
+
+        if (!is_null($this->scope_url)) {
+            $params['scope'] = $this->scope_url;
         }
 
         $response = $this->makeOAuthRequest($this->request_token_url, 'GET', $params);
@@ -114,6 +120,7 @@ class BlowAuth
         }
 
         $params['oauth_signature'] = $this->getOAuthSignature($method, $url, $params);
+        error_log("sig: " . $params['oauth_signature']);
 
         $ci = curl_init();
         $query_str = http_build_query($params);
@@ -136,7 +143,6 @@ class BlowAuth
         curl_setopt($ci, CURLOPT_TIMEOUT_MS, $this->curl_timeout_ms);
         curl_setopt($ci, CURLOPT_CONNECTTIMEOUT_MS, $this->curl_connecttimeout_ms);
         curl_setopt($ci, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ci, CURLOPT_HEADER, false);
 
         $response = curl_exec($ci);
         curl_close ($ci);
@@ -169,7 +175,7 @@ class BlowAuth
             $oauth_token_secret = $this->token_secret;
         }
 
-        $key = $this->consumer_secret . '&' . $oauth_token_secret;
+        $key = rawurlencode($this->consumer_secret) . '&' . rawurlencode($oauth_token_secret);
         return base64_encode(hash_hmac('sha1', $base_string, $key, true));
     }
 
