@@ -56,7 +56,6 @@ class GoogleOAuth extends BlowAuth {
     const GOOGLE_YOUTUBE_API            = 'http://gdata.youtube.com';
 
     private $_google_oauth_base_url = 'https://www.google.com';
-    private $_google_api_base_url = 'https://www-opensocial.googleusercontent.com/api';
 
     private $_google_request_token_uri  = '/accounts/OAuthGetRequestToken';
     private $_google_access_token_uri   = '/accounts/OAuthGetAccessToken';
@@ -75,7 +74,7 @@ class GoogleOAuth extends BlowAuth {
         $this->scope_url = $SCOPE_URL;
 
         $this->oauth_base_url = $this->_google_oauth_base_url;
-        $this->api_base_url = $this->_google_api_base_url;
+        $this->api_base_url = rtrim($SCOPE_URL, '/');
         $this->request_token_url = $this->_google_oauth_base_url . $this->_google_request_token_uri;
         $this->access_token_url = $this->_google_oauth_base_url . $this->_google_access_token_uri;
         $this->authenticate_url = $this->_google_oauth_base_url . $this->_google_authenticate_uri;

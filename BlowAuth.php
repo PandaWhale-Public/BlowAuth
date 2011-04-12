@@ -37,7 +37,7 @@ class BlowAuth
     public $oauth_version = '1.0';
     public $signature_method = 'HMAC-SHA1';
 
-    protected $scope_url = null;
+    public $scope_url = null;
 
     protected $oauth_base_url;
     protected $api_base_url;
@@ -97,10 +97,10 @@ class BlowAuth
         return $credentials;
     }
 
-    public function request($api_method)
+    public function request($api_method, $http_method = 'GET', $extra_params = array())
     {
         $request_url = "{$this->api_base_url}/{$api_method}";
-        return $this->makeOAuthRequest($request_url, 'GET');
+        return $this->makeOAuthRequest($request_url, $http_method, $extra_params);
     }
 
     protected function makeOAuthRequest($url, $method, $extra_params = array())
@@ -120,16 +120,17 @@ class BlowAuth
         }
 
         $params['oauth_signature'] = $this->getOAuthSignature($method, $url, $params);
-        error_log("sig: " . $params['oauth_signature']);
 
         $ci = curl_init();
-        $query_str = http_build_query($params);
+        // TODO: do it this way with PHP 5.3.6
+        //$query_str = http_build_query($params, '', '&', 'PHP_QUERY_RFC3986');
+        $query_str = str_replace('+', '%20', http_build_query($params));
 
         switch ($method) {
             case 'GET':
             case 'PUT':
             case 'DELETE':
-                $url .= '?' . $query_str;
+                $url .= "?$query_str";
                 break;
             case 'POST':
                 curl_setopt($ci, CURLOPT_POST, TRUE);
@@ -168,7 +169,8 @@ class BlowAuth
 
         $base_string = $method . '&'
                        . rawurlencode($url) . '&'
-                       . rawurlencode(http_build_query($params));
+                       // TODO: get rid of str replace and use $enc_type after PHP 5.3.6
+                       . rawurlencode(str_replace('+', '%20', http_build_query($params)));
 
         $oauth_token_secret = '';
         if (isset($this->token_secret)) {
