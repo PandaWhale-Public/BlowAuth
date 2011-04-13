@@ -135,12 +135,13 @@ class BlowAuth
         //$query_str = http_build_query($extra_params, '', '&', 'PHP_QUERY_RFC3986');
         if (!empty($extra_params)) {
             $query_str = str_replace('+', '%20', http_build_query($extra_params));
-            $url .= "?$query_str";
         }
 
         if ($method == 'POST') {
             curl_setopt($ci, CURLOPT_POST, TRUE);
-            if ($POST_body) {
+            if (!empty($extra_params)) {
+                curl_setopt($ci, CURLOPT_POSTFIELDS, $query_str);
+            } else if ($POST_body) {
                 $header_arr[] = 'Content-Type: text/xml';
                 curl_setopt($ci, CURLOPT_POSTFIELDS, $POST_body);
                 // TODO: set CURLOPT_HEADER only in the LinkedIn case.
@@ -148,6 +149,8 @@ class BlowAuth
                 // response headers, not the response body.
                 curl_setopt($ci, CURLOPT_HEADER, true);
             }
+        } else if ($method == 'GET' && isset($query_str)) {
+            $url .= "?$query_str";
         }
 
         curl_setopt($ci, CURLOPT_HTTPHEADER, $header_arr);
