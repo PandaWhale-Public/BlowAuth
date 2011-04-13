@@ -97,13 +97,13 @@ class BlowAuth
         return $credentials;
     }
 
-    public function request($api_method, $http_method = 'GET', $extra_params = array())
+    public function request($api_method, $http_method = 'GET', $extra_params = array(), $POST_body = '')
     {
         $request_url = "{$this->api_base_url}/{$api_method}";
-        return $this->makeOAuthRequest($request_url, $http_method, $extra_params);
+        return $this->makeOAuthRequest($request_url, $http_method, $extra_params, $POST_body);
     }
 
-    protected function makeOAuthRequest($url, $method, $extra_params = array())
+    protected function makeOAuthRequest($url, $method, $extra_params = array(), $POST_body = '')
     {
         $base_params = array(
             'oauth_consumer_key'        => $this->consumer_key,
@@ -113,33 +113,44 @@ class BlowAuth
             'oauth_version'             => $this->oauth_version,
         );
 
-        $params = array_merge($base_params, $extra_params);
-
         if (isset($this->token)) {
-            $params['oauth_token'] = $this->token;
+            $base_params['oauth_token'] = $this->token;
         }
+
+        $params = array_merge($base_params, $extra_params);
 
         $params['oauth_signature'] = $this->getOAuthSignature($method, $url, $params);
 
         $ci = curl_init();
-        // TODO: do it this way with PHP 5.3.6
-        //$query_str = http_build_query($params, '', '&', 'PHP_QUERY_RFC3986');
-        $query_str = str_replace('+', '%20', http_build_query($params));
 
-        switch ($method) {
-            case 'GET':
-            case 'PUT':
-            case 'DELETE':
-                $url .= "?$query_str";
-                break;
-            case 'POST':
-                curl_setopt($ci, CURLOPT_POST, TRUE);
-                curl_setopt($ci, CURLOPT_POSTFIELDS, $query_str);
-                break;
-            default:
-               throw new Exception("Invalid HTTP method $method"); 
+        $auth_header_params_str = '';
+        $rawurlencode = 'rawurlencode';
+        foreach ($base_params as $name => $value) {
+            $auth_header_params_str .= " $name=\"{$rawurlencode($value)}\",";
+        }
+        $auth_header_params_str .= ' oauth_signature="' . rawurlencode($params['oauth_signature']) . '"';
+        $header_arr = array("Authorization: OAuth $auth_header_params_str");
+
+        // TODO: do it this way with PHP 5.3.6
+        //$query_str = http_build_query($extra_params, '', '&', 'PHP_QUERY_RFC3986');
+        if (!empty($extra_params)) {
+            $query_str = str_replace('+', '%20', http_build_query($extra_params));
+            $url .= "?$query_str";
         }
 
+        if ($method == 'POST') {
+            curl_setopt($ci, CURLOPT_POST, TRUE);
+            if ($POST_body) {
+                $header_arr[] = 'Content-Type: text/xml';
+                curl_setopt($ci, CURLOPT_POSTFIELDS, $POST_body);
+                // TODO: set CURLOPT_HEADER only in the LinkedIn case.
+                // The meaningful info for these types of requests are in the
+                // response headers, not the response body.
+                curl_setopt($ci, CURLOPT_HEADER, true);
+            }
+        }
+
+        curl_setopt($ci, CURLOPT_HTTPHEADER, $header_arr);
         curl_setopt($ci, CURLOPT_URL, $url);
         curl_setopt($ci, CURLOPT_TIMEOUT_MS, $this->curl_timeout_ms);
         curl_setopt($ci, CURLOPT_CONNECTTIMEOUT_MS, $this->curl_connecttimeout_ms);
@@ -147,6 +158,7 @@ class BlowAuth
 
         $response = curl_exec($ci);
         curl_close ($ci);
+
         return $response;
     }
 
