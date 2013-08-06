@@ -37,7 +37,8 @@ require_once("BlowAuth.php");
 class TwitterOAuth extends BlowAuth {
 
     private $_twitter_oauth_base_url = 'https://api.twitter.com/oauth';
-    private $_twitter_api_base_url = 'https://api.twitter.com/1';
+    private $_twitter_api_base_url = 'https://api.twitter.com/1.1';
+    private $_twitter_media_upload_url = 'https://upload.twitter.com/1.1';
 
     private $_twitter_request_token_uri  = '/request_token';
     private $_twitter_access_token_uri   = '/access_token';
@@ -59,6 +60,17 @@ class TwitterOAuth extends BlowAuth {
         $this->access_token_url = $this->_twitter_oauth_base_url . $this->_twitter_access_token_uri;
         $this->authenticate_url = $this->_twitter_oauth_base_url . $this->_twitter_authenticate_uri;
         $this->authorize_url = $this->_twitter_oauth_base_url . $this->_twitter_authorize_uri;
+    }
+
+    public function request($api_method, $http_method = 'GET', $extra_params = array(), $POST_body = '') {
+        $exclude_non_oauth_params_from_sig = false;
+        if (strpos($api_method, 'statuses/update_with_media') === 0) {
+            // this method currently requires a different host than all other methods
+            $this->api_base_url = $this->_twitter_media_upload_url;
+            $exclude_non_oauth_params_from_sig = true;
+        }
+
+        return parent::request($api_method, $http_method, $extra_params, $POST_body, $exclude_non_oauth_params_from_sig);
     }
 
 }

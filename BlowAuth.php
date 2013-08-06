@@ -97,13 +97,13 @@ class BlowAuth
         return $credentials;
     }
 
-    public function request($api_method, $http_method = 'GET', $extra_params = array(), $POST_body = '')
+    public function request($api_method, $http_method = 'GET', $extra_params = array(), $POST_body = '', $exclude_non_oauth_params_from_sig = false)
     {
         $request_url = "{$this->api_base_url}/{$api_method}";
-        return $this->makeOAuthRequest($request_url, $http_method, $extra_params, $POST_body);
+        return $this->makeOAuthRequest($request_url, $http_method, $extra_params, $POST_body, $exclude_non_oauth_params_from_sig);
     }
 
-    protected function makeOAuthRequest($url, $method, $extra_params = array(), $POST_body = '')
+    protected function makeOAuthRequest($url, $method, $extra_params = array(), $POST_body = '', $exclude_non_oauth_params_from_sig = false)
     {
         $base_params = array(
             'oauth_consumer_key'        => $this->consumer_key,
@@ -119,14 +119,13 @@ class BlowAuth
 
         $params = array_merge($base_params, $extra_params);
 
-        $params['oauth_signature'] = $this->getOAuthSignature($method, $url, $params);
+        $params['oauth_signature'] = $this->getOAuthSignature($method, $url, $params, $exclude_non_oauth_params_from_sig);
 
         $ci = curl_init();
 
         $auth_header_params_str = '';
-        $rawurlencode = 'rawurlencode';
         foreach ($base_params as $name => $value) {
-            $auth_header_params_str .= " $name=\"{$rawurlencode($value)}\",";
+            $auth_header_params_str .= " $name=\"" . rawurlencode($value) . "\",";
         }
         $auth_header_params_str .= ' oauth_signature="' . rawurlencode($params['oauth_signature']) . '"';
         $header_arr = array("Authorization: OAuth $auth_header_params_str");
@@ -137,12 +136,22 @@ class BlowAuth
             $query_str = str_replace('+', '%20', http_build_query($extra_params));
         }
 
+            //curl_setopt($ci, CURLOPT_HEADER, true);
+
         if ($method == 'POST') {
             curl_setopt($ci, CURLOPT_POST, TRUE);
             if (!empty($extra_params)) {
                 curl_setopt($ci, CURLOPT_POSTFIELDS, $query_str);
+                // in case of twitter media upload, we need the raw array
+                if (isset($extra_params['media[]'])) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $extra_params);
+                    $header_arr[] = 'Expect:';
+                }
             } else if ($POST_body) {
-                $header_arr[] = 'Content-Type: text/xml';
+                // I think this header was for some LinkedIn method. if it turns out
+                // that some LI method doesn't work, pass the below header in with the
+                // request() function call
+                //$header_arr[] = 'Content-Type: text/xml';
                 curl_setopt($ci, CURLOPT_POSTFIELDS, $POST_body);
                 // TODO: set CURLOPT_HEADER only in the LinkedIn case.
                 // The meaningful info for these types of requests are in the
@@ -158,6 +167,7 @@ class BlowAuth
         curl_setopt($ci, CURLOPT_TIMEOUT_MS, $this->curl_timeout_ms);
         curl_setopt($ci, CURLOPT_CONNECTTIMEOUT_MS, $this->curl_connecttimeout_ms);
         curl_setopt($ci, CURLOPT_RETURNTRANSFER, true);
+
 
         $response = curl_exec($ci);
         curl_close ($ci);
@@ -178,14 +188,21 @@ class BlowAuth
         return time();
     }
 
-    protected function getOAuthSignature($method, $url, $params)
+    protected function getOAuthSignature($method, $url, $params, $exclude_non_oauth_params_from_sig = false)
     {
         ksort($params);
+        if ($exclude_non_oauth_params_from_sig) {
+            foreach ($params as $key => $val) {
+                if (strpos($key, 'oauth_') !== 0) {
+                    unset($params[$key]);
+                }
+            }
+        }
 
         $base_string = $method . '&'
                        . rawurlencode($url) . '&'
                        // TODO: get rid of str replace and use $enc_type after PHP 5.3.6
-                       . rawurlencode(str_replace('+', '%20', http_build_query($params)));
+                       . $this->OAuthRawUrlEncode(str_replace('+', '%20', http_build_query($params)));
 
         $oauth_token_secret = '';
         if (isset($this->token_secret)) {
@@ -206,6 +223,11 @@ class BlowAuth
     {
         $query_str = "oauth_token={$credentials['oauth_token']}";
         return $this->authenticate_url . "?$query_str";
+    }
+
+    private function OAuthRawUrlEncode($text) {
+        $tildefied_text = str_replace('%7E', '~', $text);
+        return str_replace('%7E', '~', rawurlencode($tildefied_text));
     }
 
 }

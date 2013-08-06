@@ -37,7 +37,7 @@ require_once("BlowAuth.php");
 class TumblrOAuth extends BlowAuth {
 
     private $_tumblr_oauth_base_url = 'http://www.tumblr.com/oauth';
-    private $_tumblr_api_base_url = 'http://www.tumblr.com/api';
+    private $_tumblr_api_base_url = 'http://api.tumblr.com/v2';
 
     private $_tumblr_request_token_uri  = '/request_token';
     private $_tumblr_access_token_uri   = '/access_token';
